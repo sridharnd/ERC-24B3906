@@ -1,0 +1,51 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import soundfile as sf
+
+# Load the modulated audio signal
+signal, fs = sf.read("modulated_audio.wav") 
+print(f"Sampling rate: {fs}, Signal shape: {signal.shape}")
+from scipy.fft import fft, fftfreq
+
+N = len(signal)
+T = 1 / fs
+
+yf = fft(signal)
+xf = fftfreq(N, T)[:N//2]
+
+plt.figure(figsize=(12, 4))
+plt.plot(xf, 2.0/N * np.abs(yf[:N//2]))
+plt.title("FFT of Modulated Signal")
+plt.xlabel("Frequency (Hz)")
+plt.ylabel("Amplitude")
+plt.grid()
+plt.show()
+Fc = <detected_carrier_freq>  # e.g., 10000 if you saw a spike at 10 kHz
+t = np.arange(N) / fs
+
+# Multiply by cosine (coherent detection)
+demodulated = signal * np.cos(2 * np.pi * Fc * t)
+
+# Optionally plot a small segment
+plt.plot(t[:1000], demodulated[:1000])
+plt.title("Demodulated Signal (Before Filtering)")
+plt.xlabel("Time (s)")
+plt.show()
+from scipy.signal import butter, filtfilt
+
+def butter_lowpass(cutoff, fs, order=5):
+    nyq = 0.5 * fs
+    norm_cutoff = cutoff / nyq
+    b, a = butter(order, norm_cutoff, btype='low')
+    return b, a
+
+def apply_filter(data, cutoff, fs, order=5):
+    b, a = butter_lowpass(cutoff, fs, order)
+    return filtfilt(b, a, data)
+
+filtered = apply_filter(demodulated, cutoff=4000, fs=fs)
+
+plt.plot(t[:1000], filtered[:1000])
+plt.title("Filtered Signal (Recovered Audio)")
+plt.xlabel("Time (s)")
+plt.show()
